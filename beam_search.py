@@ -1,62 +1,59 @@
-def beam_search(start_state, evaluate, generate_successors, beam_width=3, is_goal=None):
+import heapq
+
+def beam_search(predict_next, start_state, beam_width, max_steps):
     """
-    Beam Search algorithm.
-    
-    Parameters:
-    - start_state: The initial state.
-    - evaluate: A function to evaluate the quality of a state.
-    - generate_successors: A function to generate possible successors from a state.
-    - beam_width: The number of top states to keep after each iteration.
-    - is_goal: A function to check if a state satisfies the goal condition.
-    
-    Returns:
-    - best_state: The optimal state found.
+    Beam Search algoritmus implementáció.
+
+    :param predict_next: Egy függvény, amely bemeneti állapot alapján visszaadja az összes lehetséges következő állapotot
+                         és azok valószínűségeit egy listában [(probability, next_state), ...].
+    :param start_state: A kezdőállapot.
+    :param beam_width: A sugár szélessége (az állapotok maximális száma egy iterációban).
+    :param max_steps: A maximális iterációk száma (állapotok hossza).
+    :return: Az optimalizált állapotok listája és az azokhoz tartozó valószínűségek.
     """
-    current_states = [start_state]  # Start with the initial state
+    # Beam keresési lista
+    beam = [(1.0, start_state)]  # (valószínűség, állapot)
 
-    while True:
-        # Generate all successors for the current states
-        successors = []
-        for state in current_states:
-            successors.extend(generate_successors(state))
+    for step in range(max_steps):
+        print(f"\nStep {step + 1}:")
+        candidates = []
+        for prob, state in beam:
+            next_states = predict_next(state)
+            for next_prob, next_state in next_states:
+                combined_prob = prob * next_prob
+                candidates.append((combined_prob, next_state))
+        
+        # Csak a legjobb állapotokat tartjuk meg a sugár szélessége alapján
+        beam = heapq.nlargest(beam_width, candidates, key=lambda x: x[0])
+        
+        # Logolás a jelenlegi állapotokról
+        for prob, state in beam:
+            print(f"  Állapot: {state}, Valószínűség: {prob:.4f}")
 
-        # If no successors are found, terminate
-        if not successors:
-            break
+    return beam
 
-        # Evaluate all successors
-        scored_successors = [(state, evaluate(state)) for state in successors]
+# Példa: Egy egyszerű nyelvi modell, amely szavakat generál
+def simple_predict_next(state):
+    # Minden állapot (egy szó) egy listát ad vissza [(valószínűség, következő állapot)] formában
+    transitions = {
+        "START": [("0.4", "the"), ("0.6", "a")],
+        "the": [("0.5", "cat"), ("0.5", "dog")],
+        "a": [("0.5", "mouse"), ("0.5", "house")],
+        "cat": [("1.0", "END")],
+        "dog": [("1.0", "END")],
+        "mouse": [("1.0", "END")],
+        "house": [("1.0", "END")],
+    }
+    return [(float(p), next_state) for p, next_state in transitions.get(state, [])]
 
-        # Sort by score in descending order
-        scored_successors.sort(key=lambda x: x[1], reverse=True)
+# Beam Search futtatása
+beam_width = 2
+max_steps = 3
+start_state = "START"
 
-        # Keep the top 'beam_width' states
-        current_states = [state for state, score in scored_successors[:beam_width]]
+results = beam_search(simple_predict_next, start_state, beam_width, max_steps)
 
-        # If any state satisfies the goal condition, return it
-        if is_goal and any(is_goal(state) for state in current_states):
-            return next(state for state in current_states if is_goal(state))
-
-    # Return the best state found
-    return max(current_states, key=evaluate)
-
-
-# Example problem: Finding the smallest number divisible by 5 using transformations
-def evaluate(state):
-    # The closer to zero, the better the evaluation (negative for minimization)
-    return -state
-
-def generate_successors(state):
-    # Generate successors by adding or subtracting 1
-    return [state + 1, state - 1]
-
-def is_goal(state):
-    # Goal is finding a number divisible by 5
-    return state % 5 == 0
-
-# Initial state
-start_state = 12
-
-# Beam search execution
-best_state = beam_search(start_state, evaluate, generate_successors, beam_width=3, is_goal=is_goal)
-print("Best state found:", best_state)
+# Eredmények kiírása
+print("Optimalizált utak:")
+for prob, state in results:
+    print(f"Ut: {state}, Valószínűség: {prob}")
