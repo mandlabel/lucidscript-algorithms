@@ -57,3 +57,11 @@ results = beam_search(simple_predict_next, start_state, beam_width, max_steps)
 print("Optimalizált utak:")
 for prob, state in results:
     print(f"Ut: {state}, Valószínűség: {prob}")
+
+
+"""
+Miért hasznos a Beam Search?
+Hatékonyabb, mint a teljes keresés, mert csak a legígéretesebb állapotokat követi.
+Skálázható, különösen olyan problémákhoz, ahol az állapotok száma gyorsan növekszik (például természetes nyelvfeldolgozásban).
+Ez a konkrét kód egy nyelvi modell egyszerű példája, de a Beam Search sok más alkalmazási területen is használható (pl. útvonaltervezés, gépi tanulás).
+"""
